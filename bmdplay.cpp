@@ -452,9 +452,7 @@ int main(int argc, char *argv[])
 
 Player::Player()
 {
-    m_audioChannelCount = 2;
     m_audioSampleRate = bmdAudioSampleRate48kHz;
-    m_audioSampleDepth = 16;
     m_running = false;
     m_outputSignal = kOutputSignalDrop;
 }
@@ -465,6 +463,10 @@ bool    Player::Init(int videomode, int connection, int camera)
     IDeckLinkIterator*            deckLinkIterator = CreateDeckLinkIteratorInstance();
     HRESULT                        result;
     int i=0;
+
+    m_audioChannelCount = audio_st->codec->channels;
+    m_audioSampleDepth =
+        av_get_exact_bits_per_sample(audio_st->codec->codec_id);
 
     if (!deckLinkIterator)
     {
