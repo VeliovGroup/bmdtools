@@ -817,7 +817,18 @@ int main(int argc, char *argv[])
     snprintf(oc->filename, sizeof(oc->filename), "%s", g_videoOutputFile);
 
     fmt->video_codec = AV_CODEC_ID_RAWVIDEO;
-    fmt->audio_codec = AV_CODEC_ID_PCM_S16LE;
+
+    switch(g_audioSampleDepth) {
+    case 16:
+        fmt->audio_codec = AV_CODEC_ID_PCM_S16LE;
+        break;
+    case 32:
+        fmt->audio_codec = AV_CODEC_ID_PCM_S32LE;
+        break;
+    default:
+        fprintf(stderr, "Audio codec mapping not supported\n")
+        exit(1);
+    }
 
     video_st = add_video_stream(oc, fmt->video_codec);
     audio_st = add_audio_stream(oc, fmt->audio_codec);
