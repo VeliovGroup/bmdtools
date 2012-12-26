@@ -57,11 +57,12 @@ static int                        g_audioSampleDepth = 16;
 const char                       *g_videoOutputFile = NULL;
 const char                       *g_audioOutputFile = NULL;
 static int                        g_maxFrames = -1;
+static int                        g_maxDroppedFrames = -1; //limit for dropped frames if no signal from card
 bool                              g_verbose = false;
 unsigned long long                g_memoryLimit = 1024*1024*1024; // 1GByte(>50 sec)
 
 static unsigned long              frameCount = 0;
-static unsigned int               dropped = 0, totaldropped = 0;
+static unsigned int               totaldropped = 0;
 static enum PixelFormat           pix_fmt = PIX_FMT_UYVY422;
 typedef struct AVPacketQueue {
     AVPacketList *first_pkt, *last_pkt;
@@ -345,7 +346,14 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
     if (videoFrame)
     {
         if (videoFrame->GetFlags() & bmdFrameHasNoInputSource) {
-            fprintf(stderr, "Frame received (#%lu) - No input signal detected - Frames dropped %u - Total dropped %u\n", frameCount, ++dropped, ++totaldropped);
+            fprintf(stderr, "Frame received (#%lu) - No input signal detected - Total frames dropped %u\n", frameCount, ++totaldropped);
+
+            if (g_maxDroppedFrames > 0 && totaldropped >= g_maxDroppedFrames)
+            {
+                fprintf(stderr, "Dropped frames limit encountered - exiting\n");
+                pthread_cond_signal(&sleepCond);
+            }
+
             return S_OK;
 
         } else {
@@ -576,6 +584,7 @@ int usage(int status)
         "    -s <depth>           Audio Sample Depth (16 or 32 - default is 16)\n"
         "    -p <pixel>           PixelFormat Depth (8 or 10 - default is 8)\n"
         "    -n <frames>          Number of frames to capture (default is unlimited)\n"
+        "    -D <frames>          Limit dropped frames max count (default is unlimited)\n"
         "    -M <memlimit>        Maximum queue size in GB (default is 1 GB)\n"
         "    -C <num>             number of card to be used\n"
         "    -A <audio-in>        Audio input:\n"
@@ -634,7 +643,7 @@ int main(int argc, char *argv[])
     }
 
     // Parse command line options
-    while ((ch = getopt(argc, argv, "?hvc:s:f:a:m:n:p:M:F:C:A:V:")) != -1)
+    while ((ch = getopt(argc, argv, "?hvc:s:f:a:m:n:p:M:F:C:A:V:D:")) != -1)
     {
         switch (ch)
         {
@@ -683,6 +692,9 @@ int main(int argc, char *argv[])
             case 'n':
                 g_maxFrames = atoi(optarg);
                 break;
+            case 'D':
+                g_maxDroppedFrames = atoi(optarg);
+                break;               
             case 'M':
                 g_memoryLimit = atoi(optarg) * 1024*1024*1024L;
                 break;
