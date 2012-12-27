@@ -26,7 +26,7 @@
 
 CXX=g++
 SDK_PATH=../../include
-CFLAGS=-Wno-multichar -I $(SDK_PATH) -fno-rtti -D__STDC_CONSTANT_MACROS -g
+CFLAGS=-march=core2 -mtune=core2 -O2 -pipe -Wno-multichar -I $(SDK_PATH) -fno-rtti -D__STDC_CONSTANT_MACROS -g
 LDFLAGS=-lm -ldl -lpthread `pkg-config --libs libavformat libswscale`
 
 all: bmdcapture bmdplay bmdgenlock
@@ -42,4 +42,4 @@ bmdgenlock: genlock.cpp $(SDK_PATH)/DeckLinkAPIDispatch.cpp
 
 
 clean:
-	-rm -f bmdcapture bmdplay
+	-rm -f bmdcapture bmdplay bmdgenlock
