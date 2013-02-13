@@ -43,3 +43,8 @@ bmdgenlock: genlock.cpp $(SDK_PATH)/DeckLinkAPIDispatch.cpp
 
 clean:
 	-rm -f bmdcapture bmdplay bmdgenlock
+
+install:
+	-cp bmdcapture /opt/bin/bmdcapture
+	-cp bmdplay /opt/bin/bmdplay
+	-cp bmdgenlock /opt/bin/bmdgenlock
