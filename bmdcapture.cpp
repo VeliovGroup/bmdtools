@@ -188,7 +188,6 @@ static unsigned long long avpacket_queue_size(AVPacketQueue *q)
     return size;
 }
 
-AVFrame *picture;
 AVOutputFormat *fmt = NULL;
 AVFormatContext *oc;
 AVStream *audio_st, *video_st;
@@ -283,7 +282,6 @@ static AVStream *add_video_stream(AVFormatContext *oc, enum AVCodecID codec_id)
         fprintf(stderr, "could not open codec\n");
         exit(1);
     }
-    picture = avcodec_alloc_frame();
 
     return st;
 }
@@ -361,9 +359,6 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(
                         (double)qsize / 1024 / 1024);
             }
             videoFrame->GetBytes(&frameBytes);
-            avpicture_fill((AVPicture *)picture, (uint8_t *)frameBytes,
-                           pix_fmt,
-                           videoFrame->GetWidth(), videoFrame->GetHeight());
             videoFrame->GetStreamTime(&frameTime, &frameDuration,
                                       video_st->time_base.den);
             pkt.pts      = pkt.dts = frameTime / video_st->time_base.num;
@@ -383,10 +378,6 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(
         }
 //        frameCount++;
 
-        if (g_maxFrames > 0 && frameCount >= g_maxFrames ||
-            avpacket_queue_size(&queue) > g_memoryLimit) {
-            pthread_cond_signal(&sleepCond);
-        }
     }
 
     // Handle Audio Frame
@@ -608,10 +599,11 @@ static void *push_packet(void *ctx)
     int ret;
 
     while (avpacket_queue_get(&queue, &pkt, 1)) {
-        pkt.destruct = NULL;
         av_interleaved_write_frame(s, &pkt);
-        av_destruct_packet(&pkt);
-        av_free_packet(&pkt);
+        if (g_maxFrames > 0 && frameCount >= g_maxFrames ||
+            avpacket_queue_size(&queue) > g_memoryLimit) {
+            pthread_cond_signal(&sleepCond);
+        }
     }
 
     return NULL;
@@ -890,7 +882,9 @@ int main(int argc, char *argv[])
     pthread_mutex_lock(&sleepMutex);
     pthread_cond_wait(&sleepCond, &sleepMutex);
     pthread_mutex_unlock(&sleepMutex);
+    deckLinkInput->StopStreams();
     fprintf(stderr, "Stopping Capture\n");
+    avpacket_queue_end(&queue);
 
 bail:
     if (displayModeIterator != NULL) {
