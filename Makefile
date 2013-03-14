@@ -29,7 +29,7 @@ SDK_PATH=../../include
 CFLAGS=-march=core2 -mtune=core2 -O2 -pipe -Wno-multichar -I $(SDK_PATH) -fno-rtti -D__STDC_CONSTANT_MACROS -g
 LDFLAGS=-lm -ldl -lpthread `pkg-config --libs libavformat libswscale`
 
-all: bmdcapture bmdplay bmdgenlock
+all: bmdcapture bmdgenlock
 
 bmdcapture: bmdcapture.cpp $(SDK_PATH)/DeckLinkAPIDispatch.cpp
 	$(CXX) -o $@ $^ $(CFLAGS) $(LDFLAGS)
@@ -46,5 +46,5 @@ clean:
 
 install:
 	-cp bmdcapture /opt/bin/bmdcapture
-	-cp bmdplay /opt/bin/bmdplay
+#	-cp bmdplay /opt/bin/bmdplay
 	-cp bmdgenlock /opt/bin/bmdgenlock
